@@ -52,7 +52,7 @@ app.innerHTML = [
   '        <div class="transcript-panel-foot"><span>Reference: <strong id="transcript-accession"></strong></span><span>Sequence window only · no structure model</span></div>',
   '      </div>',
   '    </section>',
-  '    <aside class="lesson-column" aria-label="Sequence design lesson">'
+  '    <aside class="lesson-column" aria-label="Sequence design lesson">',
   '      <section class="card primary">',
   '        <div class="reading-top"><div><h2 class="card-title">Reading head</h2><div class="reading-count" id="pair-count">Pair 1 of 22</div></div><div class="progress-track" aria-label="Sequence progress"><div class="progress-fill" id="progress-fill"></div></div><div class="step-controls"><button class="control-btn" id="prev-btn" type="button" aria-label="Previous pair">←</button><button class="control-btn" id="next-btn" type="button" aria-label="Next pair">→</button></div></div>',
   '        <div class="strand-row"><span class="base-chip" id="target-chip">U</span><span class="strand-name" id="target-name">Target RNA</span><span class="strand-detail" id="target-detail">Uracil · pyrimidine</span></div>',
