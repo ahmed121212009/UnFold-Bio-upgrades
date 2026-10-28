@@ -1,5 +1,6 @@
 import './style.css'
 import { initStructure, showReadingPair, hasStructure } from './structure.js'
+import { NCBI_ACCESSION, NCBI_LABEL, NCBI_TRANSCRIPT } from './transcript.js'
 import {
   BASES,
   BASIC_TARGET,
@@ -24,7 +25,8 @@ app.innerHTML = [
   '  <nav class="mode-nav" aria-label="Learning mode">',
   '    <button class="mode-btn" data-mode="basic" type="button">Basic guide</button>',
   '    <button class="mode-btn active" data-mode="structure" type="button">6E9F crRNA design</button>',
-  '    <span class="mode-caption">Learn simple pairing first, then design against a real structure</span>',
+  '    <button class="mode-btn" data-mode="transcript" type="button">NCBI transcript lab</button>',
+  '    <span class="mode-caption">Learn pairing, then explore a deposited structure or a RefSeq transcript</span>',
   '  </nav>',
   '  <main class="workspace" id="workspace">',
   '    <section class="visual-column" aria-label="Molecular structure">',
@@ -41,8 +43,16 @@ app.innerHTML = [
   '          <g fill="#f0a45b"><circle class="node" cx="430" cy="35" r="8"/><circle class="node" cx="100" cy="85" r="8"/><circle class="node" cx="420" cy="130" r="8"/><circle class="node" cx="90" cy="180" r="8"/><circle class="node" cx="410" cy="230" r="8"/><circle class="node" cx="110" cy="280" r="8"/><circle class="node" cx="430" cy="325" r="8"/></g>',
   '        </svg><div class="basic-art-caption">A simple pairing sketch · switch to 6E9F for the observed Cas13d complex</div>',
   '      </div>',
+  '      <div class="transcript-panel" id="transcript-panel">',
+  '        <div class="transcript-intro"><span class="transcript-orbit">RNA</span><div><span class="eyebrow">NCBI REFSEQ · SEQUENCE PRACTICE</span><h2>Explore a transcript</h2><p id="transcript-description"></p></div></div>',
+  '        <div class="transcript-track-label"><span>5′ start</span><span id="transcript-window-label">Window 1–22</span><span>3′ end</span></div>',
+  '        <div class="transcript-track"><div class="transcript-track-glow"></div><div class="transcript-window" id="transcript-window"></div></div>',
+  '        <input id="transcript-slider" class="transcript-slider" type="range" min="0" max="1263" value="0" aria-label="Move along the NCBI transcript">',
+  '        <div class="transcript-sequence" id="transcript-sequence"></div>',
+  '        <div class="transcript-panel-foot"><span>Reference: <strong id="transcript-accession"></strong></span><span>Sequence window only · no structure model</span></div>',
+  '      </div>',
   '    </section>',
-  '    <aside class="lesson-column" aria-label="Sequence design lesson">',
+  '    <aside class="lesson-column" aria-label="Sequence design lesson">'
   '      <section class="card primary">',
   '        <div class="reading-top"><div><h2 class="card-title">Reading head</h2><div class="reading-count" id="pair-count">Pair 1 of 22</div></div><div class="progress-track" aria-label="Sequence progress"><div class="progress-fill" id="progress-fill"></div></div><div class="step-controls"><button class="control-btn" id="prev-btn" type="button" aria-label="Previous pair">←</button><button class="control-btn" id="next-btn" type="button" aria-label="Next pair">→</button></div></div>',
   '        <div class="strand-row"><span class="base-chip" id="target-chip">U</span><span class="strand-name" id="target-name">Target RNA</span><span class="strand-detail" id="target-detail">Uracil · pyrimidine</span></div>',
@@ -64,6 +74,7 @@ app.innerHTML = [
   '        <div class="controls palette" id="base-picker"></div>',
   '        <div class="controls" style="margin-top:11px">',
   '          <button class="control-btn primary-btn" id="build-btn" type="button">Build reverse complement</button>',
+  '          <button class="control-btn" id="mismatch-btn" type="button">Show one mismatch</button>',
   '          <button class="control-btn" id="reference-btn" type="button">Use 6E9F spacer</button>',
   '          <button class="control-btn" id="clear-btn" type="button">Clear guide</button>',
   '        </div>',
@@ -77,7 +88,7 @@ app.innerHTML = [
   '        <div class="card-head"><h2 class="card-title" id="facts-heading">6E9F structure facts</h2><span class="eyebrow" id="facts-position">Target C:5 · crRNA B:52</span></div>',
   '        <div class="fact-grid" id="fact-grid"></div>',
   '      </section>',
-  '      <p class="source-line">Sequence and coordinates: <a href="https://www.rcsb.org/structure/6E9F" target="_blank" rel="noreferrer">RCSB PDB 6E9F</a>. The viewer shows the deposited complex; edited guide letters are a design exercise.</p>',
+  '      <p class="source-line">Structure: <a href="https://www.rcsb.org/structure/6E9F" target="_blank" rel="noreferrer">RCSB PDB 6E9F</a>. Sequence practice: <a href="https://www.ncbi.nlm.nih.gov/nuccore/NM_002046.7" target="_blank" rel="noreferrer">NCBI RefSeq ' + NCBI_ACCESSION + '</a>. Edited guide letters are learning exercises, not activity predictions.</p>',
   '    </aside>',
   '  </main>',
   '</div>',
@@ -92,12 +103,15 @@ const state = {
   basicGuide: Array(BASIC_TARGET.length).fill(null),
   scanning: false,
   scanTimer: null,
+  transcriptOffset: 0,
 }
 
 const $ = (id) => document.getElementById(id)
 
 function sequenceForMode() {
-  return state.mode === 'basic' ? BASIC_TARGET : TARGET_SITE.slice(0, state.length)
+  if (state.mode === 'basic') return BASIC_TARGET
+  if (state.mode === 'transcript') return NCBI_TRANSCRIPT.slice(state.transcriptOffset, state.transcriptOffset + 22)
+  return TARGET_SITE.slice(0, state.length)
 }
 
 function activeLength() {
@@ -131,7 +145,7 @@ function currentPairStatus() {
 
 function renderSequence() {
   const mode = state.mode
-  const target = mode === 'basic' ? BASIC_TARGET : TARGET_SITE
+  const target = mode === 'basic' ? BASIC_TARGET : mode === 'transcript' ? sequenceForMode() : TARGET_SITE
   const length = activeLength()
   const selected = selectedIndex()
   const targetRow = []
@@ -164,16 +178,22 @@ function renderSequence() {
   $('guide-row').innerHTML = guideLeft + guideRow.join('') + guideRight
   $('rung-row').innerHTML = (mode === 'basic' ? '' : '<span class="rung-spacer"></span>') + rungs.join('') + (mode === 'basic' ? '' : '<span class="rung-spacer"></span>')
   $('guide-seq').textContent = currentGuideSequence()
-  $('sequence-heading').textContent = mode === 'basic' ? 'Basic pairing practice' : 'Sequence window'
-  $('target-row-label').textContent = mode === 'basic' ? 'Target RNA · simplified' : 'Target RNA · 5′ → 3′'
+  $('sequence-heading').textContent = mode === 'basic' ? 'Basic pairing practice' : mode === 'transcript' ? 'NCBI transcript target window' : 'Sequence window'
+  $('target-row-label').textContent = mode === 'basic' ? 'Target RNA · simplified' : mode === 'transcript' ? 'NCBI RefSeq mRNA · 5′ → 3′' : 'Target RNA · 5′ → 3′'
   $('guide-row-label').textContent = mode === 'basic' ? 'Guide slots · paired by position for the basic lesson' : 'crRNA · 3′ → 5′ across the pairing'
   $('guide-seq-label').textContent = mode === 'basic' ? 'Basic guide slots: ' : 'Guide written 5′ → 3′: '
   $('sequence-position').textContent = mode === 'basic'
     ? '8 teaching positions'
-    : 'Target C:' + TARGET_START_RESIDUE + '–' + (TARGET_START_RESIDUE + state.length - 1)
-  $('sequence-note').innerHTML = mode === 'basic'
+    : mode === 'transcript'
+      ? NCBI_ACCESSION + ' · nt ' + (state.transcriptOffset + 1) + '–' + (state.transcriptOffset + state.length)
+      : 'Target C:' + TARGET_START_RESIDUE + '–' + (TARGET_START_RESIDUE + state.length - 1)
+  const correctCount = Array.from({ length }, (_, i) => guideBaseAt(i) && complement(guideBaseAt(i)) === target[i]).filter(Boolean).length
+  const lessonNote = mode === 'basic'
     ? '<strong>First, learn the pairing rule.</strong> A pairs with U; G pairs with C. The beginner board pairs positions directly and leaves antiparallel orientation for the structure lesson.'
-    : '<strong>Read the target 5′ → 3′.</strong> The crRNA binds antiparallel. To write the guide 5′ → 3′, complement the target and reverse the result.'
+    : mode === 'transcript'
+      ? '<strong>Explore a real RefSeq sequence.</strong> Move the transcript window, choose a target position, then build its reverse complement. This sequence view does not predict Cas13 activity or show this transcript in 3D.'
+      : '<strong>Read the target 5′ → 3′.</strong> The crRNA binds antiparallel. To write the guide 5′ → 3′, complement the target and reverse the result.'
+  $('sequence-note').innerHTML = lessonNote + '<span class="match-counter">' + correctCount + ' / ' + length + ' canonical pairs</span>'
   document.querySelectorAll('.seq-cell').forEach((cell) => {
     cell.addEventListener('click', () => selectPosition(Number(cell.dataset.index), true))
   })
@@ -192,8 +212,8 @@ function renderReadingHead() {
   $('target-detail').textContent = target + ' · ' + baseClass(target)
   $('guide-chip').textContent = guide || '·'
   $('guide-chip').className = 'base-chip ' + (guide ? classForBase(guide) : '')
-  $('target-name').textContent = mode === 'basic' ? 'Target RNA' : 'Target RNA · C:' + (TARGET_START_RESIDUE + index)
-  $('guide-name').textContent = mode === 'basic' ? 'Your guide' : 'crRNA · B:' + guideResidueForTargetIndex(index)
+  $('target-name').textContent = mode === 'basic' ? 'Target RNA' : mode === 'transcript' ? 'RefSeq · nt ' + (state.transcriptOffset + index + 1) : 'Target RNA · C:' + (TARGET_START_RESIDUE + index)
+  $('guide-name').textContent = mode === 'basic' ? 'Your guide' : mode === 'transcript' ? 'Practice guide' : 'crRNA · B:' + guideResidueForTargetIndex(index)
   $('guide-detail').textContent = guide
     ? guide + ' · ' + baseClass(guide)
     : 'Choose a base to build the guide'
@@ -213,10 +233,14 @@ function renderReadingHead() {
 
   $('facts-position').textContent = mode === 'basic'
     ? 'Practice pair ' + (index + 1)
-    : 'Target C:' + (TARGET_START_RESIDUE + index) + ' · crRNA B:' + guideResidueForTargetIndex(index)
+    : mode === 'transcript'
+      ? NCBI_ACCESSION + ' · nt ' + (state.transcriptOffset + index + 1)
+      : 'Target C:' + (TARGET_START_RESIDUE + index) + ' · crRNA B:' + guideResidueForTargetIndex(index)
   $('fact-grid').innerHTML = mode === 'basic'
     ? '<div class="fact"><span class="fact-label">Pairing rule</span><span class="fact-value">A–U and G–C</span></div><div class="fact"><span class="fact-label">Practice</span><span class="fact-value">One base at a time</span></div>'
-    : '<div class="fact"><span class="fact-label">Pair location</span><span class="fact-value">Target chain C, residue ' + (TARGET_START_RESIDUE + index) + '</span></div><div class="fact"><span class="fact-label">Guide location</span><span class="fact-value">crRNA chain B, residue ' + guideResidueForTargetIndex(index) + '</span></div><div class="fact"><span class="fact-label">Canonical bonds</span><span class="fact-value">A–U: 2 · G–C: 3</span></div><div class="fact"><span class="fact-label">Complex</span><span class="fact-value">EsCas13d · crRNA · target RNA</span></div>'
+    : mode === 'transcript'
+      ? '<div class="fact"><span class="fact-label">NCBI RefSeq</span><span class="fact-value">' + NCBI_ACCESSION + '</span></div><div class="fact"><span class="fact-label">Transcript</span><span class="fact-value">GAPDH variant 1 · ' + NCBI_TRANSCRIPT.length + ' nt</span></div><div class="fact"><span class="fact-label">Window</span><span class="fact-value">nt ' + (state.transcriptOffset + 1) + '–' + (state.transcriptOffset + state.length) + '</span></div><div class="fact"><span class="fact-label">Model status</span><span class="fact-value">Sequence practice · no activity prediction</span></div>'
+      : '<div class="fact"><span class="fact-label">Pair location</span><span class="fact-value">Target chain C, residue ' + (TARGET_START_RESIDUE + index) + '</span></div><div class="fact"><span class="fact-label">Guide location</span><span class="fact-value">crRNA chain B, residue ' + guideResidueForTargetIndex(index) + '</span></div><div class="fact"><span class="fact-label">Canonical bonds</span><span class="fact-value">A–U: 2 · G–C: 3</span></div><div class="fact"><span class="fact-label">Complex</span><span class="fact-value">EsCas13d · crRNA · target RNA</span></div>'
 }
 
 function renderControls() {
@@ -230,9 +254,11 @@ function renderControls() {
   })
 
   $('length-card').hidden = mode === 'basic'
-  $('reference-btn').hidden = mode === 'basic'
+  $('reference-btn').hidden = mode !== 'structure'
+  $('mismatch-btn').hidden = mode === 'basic'
   $('build-btn').textContent = mode === 'basic' ? 'Auto-fill complementary guide' : 'Build reverse complement'
   $('clear-btn').textContent = mode === 'basic' ? 'Clear practice' : 'Clear guide'
+  renderTranscriptNavigator()
 
   const lengthPicker = $('length-picker')
   lengthPicker.innerHTML = '<span class="length-label">Choose an example length</span>' + GUIDE_LENGTHS.map((length) =>
@@ -247,6 +273,35 @@ function renderControls() {
     button.classList.toggle('active', button.dataset.mode === mode)
   })
   $('workspace').classList.toggle('basic-mode', isBasic)
+  $('workspace').classList.toggle('transcript-mode', mode === 'transcript')
+  $('transcript-description').textContent = NCBI_LABEL + ' · ' + NCBI_TRANSCRIPT.length.toLocaleString() + ' nt'
+  $('transcript-accession').textContent = NCBI_ACCESSION
+}
+
+function renderTranscriptNavigator() {
+  const slider = $('transcript-slider')
+  if (!slider) return
+  const maxStart = NCBI_TRANSCRIPT.length - 22
+  slider.max = String(maxStart)
+  slider.value = String(state.transcriptOffset)
+  const left = (state.transcriptOffset / maxStart) * 100
+  const width = (state.length / NCBI_TRANSCRIPT.length) * 100
+  $('transcript-window').style.left = left + '%'
+  $('transcript-window').style.width = Math.max(width, 0.8) + '%'
+  $('transcript-window-label').textContent = 'Window ' + (state.transcriptOffset + 1) + '–' + (state.transcriptOffset + state.length)
+  const start = Math.max(0, state.transcriptOffset - 8)
+  const end = Math.min(NCBI_TRANSCRIPT.length, state.transcriptOffset + 22 + 8)
+  $('transcript-sequence').innerHTML = Array.from(NCBI_TRANSCRIPT.slice(start, end), (base, i) => {
+    const position = start + i
+    const selected = position >= state.transcriptOffset && position < state.transcriptOffset + state.length
+    return '<span class="' + (selected ? 'window-base ' : '') + 'base-' + base + '">' + base + '</span>'
+  }).join('')
+  slider.oninput = () => {
+    state.transcriptOffset = Number(slider.value)
+    state.selected = Math.min(state.selected, state.length - 1)
+    state.guide = Array(state.length).fill(null)
+    render()
+  }
 }
 
 function render() {
@@ -286,7 +341,7 @@ function buildGuide() {
   if (state.mode === 'basic') {
     state.basicGuide = BASIC_TARGET.split('').map(complement)
   } else {
-    const site = TARGET_SITE.slice(0, state.length)
+    const site = state.mode === 'transcript' ? sequenceForMode().slice(0, state.length) : TARGET_SITE.slice(0, state.length)
     state.guide = reverseComplement(site).split('')
   }
   render()
@@ -343,12 +398,21 @@ function toggleScan() {
 document.querySelectorAll('.mode-btn').forEach((button) => {
   button.addEventListener('click', () => {
     state.mode = button.dataset.mode
+    if (state.mode === 'transcript') {
+      state.transcriptOffset = Math.min(state.transcriptOffset, NCBI_TRANSCRIPT.length - 22)
+      state.guide = Array(state.length).fill(null)
+    }
     stopScan()
     render()
   })
 })
 
 $('build-btn').addEventListener('click', buildGuide)
+$('mismatch-btn').addEventListener('click', () => {
+  const target = sequenceForMode()[selectedIndex()]
+  const wrongBase = BASES.find((base) => base !== complement(target))
+  placeBase(wrongBase)
+})
 $('reference-btn').addEventListener('click', useObservedSpacer)
 $('clear-btn').addEventListener('click', clearGuide)
 $('scan-btn').addEventListener('click', toggleScan)
