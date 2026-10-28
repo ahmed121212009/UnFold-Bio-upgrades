@@ -277,9 +277,10 @@ function renderControls() {
   $('transcript-description').textContent = NCBI_LABEL + ' · ' + NCBI_TRANSCRIPT.length.toLocaleString() + ' nt'
   $('transcript-accession').textContent = NCBI_ACCESSION
   $('visual-label').textContent = mode === 'transcript' ? 'Transcript map' : mode === 'basic' ? 'Pairing sketch' : 'Molecule view'
-  $('dataset-kind').textContent = mode === 'transcript' ? 'RefSeq' : 'Structure'
-  $('dataset-label').textContent = mode === 'transcript' ? NCBI_ACCESSION : '6E9F'
-  $('dataset-detail').textContent = mode === 'transcript' ? 'GAPDH · sequence practice' : 'EsCas13d · crRNA · target RNA'
+  $('structure-status').textContent = mode === 'basic' ? 'Illustration · not to scale' : '6E9F structure ready'
+  $('dataset-kind').textContent = mode === 'transcript' ? 'RefSeq' : mode === 'basic' ? 'Lesson' : 'Structure'
+  $('dataset-label').textContent = mode === 'transcript' ? NCBI_ACCESSION : mode === 'basic' ? 'Basic' : '6E9F'
+  $('dataset-detail').textContent = mode === 'transcript' ? 'GAPDH · sequence practice' : mode === 'basic' ? 'A–U · G–C base pairing' : 'EsCas13d · crRNA · target RNA'
 }
 
 function renderTranscriptNavigator() {
