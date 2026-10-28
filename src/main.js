@@ -107,6 +107,7 @@ const state = {
 }
 
 const $ = (id) => document.getElementById(id)
+let structureStatus = 'Loading 6E9F coordinates…'
 
 function sequenceForMode() {
   if (state.mode === 'basic') return BASIC_TARGET
@@ -277,7 +278,7 @@ function renderControls() {
   $('transcript-description').textContent = NCBI_LABEL + ' · ' + NCBI_TRANSCRIPT.length.toLocaleString() + ' nt'
   $('transcript-accession').textContent = NCBI_ACCESSION
   $('visual-label').textContent = mode === 'transcript' ? 'Transcript map' : mode === 'basic' ? 'Pairing sketch' : 'Molecule view'
-  $('structure-status').textContent = mode === 'basic' ? 'Illustration · not to scale' : '6E9F structure ready'
+  $('structure-status').textContent = mode === 'basic' ? 'Illustration · not to scale' : structureStatus
   $('dataset-kind').textContent = mode === 'transcript' ? 'RefSeq' : mode === 'basic' ? 'Lesson' : 'Structure'
   $('dataset-label').textContent = mode === 'transcript' ? NCBI_ACCESSION : mode === 'basic' ? 'Basic' : '6E9F'
   $('dataset-detail').textContent = mode === 'transcript' ? 'GAPDH · sequence practice' : mode === 'basic' ? 'A–U · G–C base pairing' : 'EsCas13d · crRNA · target RNA'
@@ -426,13 +427,15 @@ $('next-btn')?.addEventListener('click', () => changePosition(1))
 
 initStructure()
   .then(() => {
-    $('structure-status').textContent = '6E9F structure ready'
+    structureStatus = '6E9F structure ready'
+    $('structure-status').textContent = structureStatus
     $('viewer-message').hidden = true
     showReadingPair(state.selected, state.length)
   })
   .catch((error) => {
     console.error(error)
-    $('structure-status').textContent = 'Sequence lesson available'
+    structureStatus = 'Sequence lesson available'
+    $('structure-status').textContent = structureStatus
     $('viewer-message').textContent = 'The 6E9F coordinates could not be loaded. The sequence lesson remains available.'
   })
 
