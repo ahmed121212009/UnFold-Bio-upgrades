@@ -18,7 +18,7 @@ The spacer is the reverse complement of that target segment using RNA pairing (A
 - [RCSB PDB entry 6E9F](https://www.rcsb.org/structure/6E9F) — EsCas13d–crRNA–target RNA ternary complex.
 - [RCSB PDB sequence page for 6E9F](https://www.rcsb.org/sequence/6E9F) — chain sequence records.
 - Coordinate file bundled as public/6E9F.pdb from the project’s original UnFold-BIO repository, matching the RCSB entry.
-- The **NCBI transcript lab** bundles the NCBI RefSeq FASTA for [NM_002046.7](https://www.ncbi.nlm.nih.gov/nuccore/NM_002046.7), human GAPDH transcript variant 1. FASTA DNA letters were converted from T to U for the RNA pairing lesson. Window choices and reverse complements are sequence exercises only; they are not activity, accessibility, or specificity predictions.
+- The **NCBI transcript lab** bundles the original FASTA at `src/NM_002046.7.fasta`, downloaded from the NCBI RefSeq record [NM_002046.7](https://www.ncbi.nlm.nih.gov/nuccore/NM_002046.7), human GAPDH transcript variant 1. The app reads the FASTA and converts T to U for the RNA pairing lesson. Window choices and reverse complements are sequence exercises only; they are not activity, accessibility, or specificity predictions.
 - [RCSB PDB entry 6E9E](https://www.rcsb.org/structure/6E9E) is the related EsCas13d–crRNA binary complex. The viewer links to its online structure view as a target-free comparison. The local Mol* view remains 6E9F.
 
 The DNA viewer screenshot is used as a layout reference for the reading head, sequence strip, and structure facts. Its B-DNA geometry values are not reused for the RNA complex.
