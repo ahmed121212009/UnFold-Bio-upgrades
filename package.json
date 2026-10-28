@@ -1,0 +1,17 @@
+{
+  "name": "unfold-bio-upgrades",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "molstar": "^5.11.0"
+  },
+  "devDependencies": {
+    "vite": "^8.2.2"
+  }
+}
