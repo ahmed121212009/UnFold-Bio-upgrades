@@ -20,7 +20,7 @@ app.innerHTML = [
   '<div class="app-shell">',
   '  <header class="topbar">',
   '    <div class="brandline"><h1 class="brand"><small>UnFold-BIO · Upgrade prototype</small>Guide RNA design</h1></div>',
-  '    <div class="top-meta"><span>Structure <strong>6E9F</strong></span><span>EsCas13d · crRNA · target RNA</span><button class="control-btn" id="scan-btn" type="button">Scan sequence</button></div>',
+  '    <div class="top-meta"><span><span id="dataset-kind">Structure</span> <strong id="dataset-label">6E9F</strong></span><span id="dataset-detail">EsCas13d · crRNA · target RNA</span><button class="control-btn" id="scan-btn" type="button">Scan sequence</button></div>',
   '  </header>',
   '  <nav class="mode-nav" aria-label="Learning mode">',
   '    <button class="mode-btn" data-mode="basic" type="button">Basic guide</button>',
@@ -276,6 +276,9 @@ function renderControls() {
   $('workspace').classList.toggle('transcript-mode', mode === 'transcript')
   $('transcript-description').textContent = NCBI_LABEL + ' · ' + NCBI_TRANSCRIPT.length.toLocaleString() + ' nt'
   $('transcript-accession').textContent = NCBI_ACCESSION
+  $('dataset-kind').textContent = mode === 'transcript' ? 'RefSeq' : 'Structure'
+  $('dataset-label').textContent = mode === 'transcript' ? NCBI_ACCESSION : '6E9F'
+  $('dataset-detail').textContent = mode === 'transcript' ? 'GAPDH · sequence practice' : 'EsCas13d · crRNA · target RNA'
 }
 
 function renderTranscriptNavigator() {
@@ -284,8 +287,8 @@ function renderTranscriptNavigator() {
   const maxStart = NCBI_TRANSCRIPT.length - 22
   slider.max = String(maxStart)
   slider.value = String(state.transcriptOffset)
-  const left = (state.transcriptOffset / maxStart) * 100
   const width = (state.length / NCBI_TRANSCRIPT.length) * 100
+  const left = (state.transcriptOffset / maxStart) * (100 - width)
   $('transcript-window').style.left = left + '%'
   $('transcript-window').style.width = Math.max(width, 0.8) + '%'
   $('transcript-window-label').textContent = 'Window ' + (state.transcriptOffset + 1) + '–' + (state.transcriptOffset + state.length)
