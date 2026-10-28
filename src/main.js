@@ -30,9 +30,9 @@ app.innerHTML = [
   '  </nav>',
   '  <main class="workspace" id="workspace">',
   '    <section class="visual-column" aria-label="Molecular structure">',
-  '      <div class="visual-head"><span class="eyebrow">Molecule view</span><span class="structure-badge"><i class="status-dot"></i><span id="structure-status">Loading 6E9F coordinates…</span></span></div>',
+  '      <div class="visual-head"><span class="eyebrow" id="visual-label">Molecule view</span><span class="structure-badge"><i class="status-dot"></i><span id="structure-status">Loading 6E9F coordinates…</span></span></div>',
   '      <div id="molstar-stage"></div>',
-  '      <div class="viewer-overlay"><span class="legend-pill"><i class="legend-swatch" style="background:#49c8b1"></i>crRNA spacer · chain B</span><span class="legend-pill"><i class="legend-swatch" style="background:#f0a45b"></i>target site · chain C</span></div>',
+  '      <div class="viewer-overlay"><span class="legend-pill"><i class="legend-swatch" style="background:#49c8b1"></i>crRNA spacer · chain B</span><span class="legend-pill"><i class="legend-swatch" style="background:#f0a45b"></i>target site · chain C</span><a class="legend-pill compare-link" href="https://www.rcsb.org/3d-view/6E9E" target="_blank" rel="noreferrer">Before target binds · 6E9E ↗</a></div>',
   '      <div class="viewer-message" id="viewer-message">Loading the 6E9F molecular structure…</div>',
   '      <div class="basic-art" aria-hidden="true">',
   '        <svg viewBox="0 0 520 360" role="img">',
@@ -276,6 +276,7 @@ function renderControls() {
   $('workspace').classList.toggle('transcript-mode', mode === 'transcript')
   $('transcript-description').textContent = NCBI_LABEL + ' · ' + NCBI_TRANSCRIPT.length.toLocaleString() + ' nt'
   $('transcript-accession').textContent = NCBI_ACCESSION
+  $('visual-label').textContent = mode === 'transcript' ? 'Transcript map' : mode === 'basic' ? 'Pairing sketch' : 'Molecule view'
   $('dataset-kind').textContent = mode === 'transcript' ? 'RefSeq' : 'Structure'
   $('dataset-label').textContent = mode === 'transcript' ? NCBI_ACCESSION : '6E9F'
   $('dataset-detail').textContent = mode === 'transcript' ? 'GAPDH · sequence practice' : 'EsCas13d · crRNA · target RNA'
@@ -371,7 +372,7 @@ function setGuideLength(length) {
   state.selected = Math.min(state.selected, length - 1)
   state.guide = Array(length).fill(null)
   render()
-  if (hasStructure()) showReadingPair(state.selected, state.length)
+  if (state.mode === 'structure' && hasStructure()) showReadingPair(state.selected, state.length)
 }
 
 function changePosition(delta) {
