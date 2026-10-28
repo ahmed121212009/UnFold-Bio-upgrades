@@ -4,86 +4,49 @@ import { MolScriptBuilder as MS } from 'molstar/lib/mol-script/language/builder'
 import { Script } from 'molstar/lib/mol-script/script'
 import { StructureSelection } from 'molstar/lib/mol-model/structure'
 import { Color } from 'molstar/lib/mol-util/color'
-import {
-  GUIDE_SPACER_END_RESIDUE,
-  GUIDE_SPACER_START_RESIDUE,
-  TARGET_END_RESIDUE,
-  TARGET_START_RESIDUE,
-  guideResidueForTargetIndex,
-} from './sequence.js'
+import { guideResidueForTargetIndex, TARGET_START_RESIDUE } from './sequence.js'
 
-const PDB_URL = import.meta.env.BASE_URL + '6E9F.pdb'
-let viewer
-let structureCell
-let queue = Promise.resolve()
-let activeComponents = []
-
-function serial(work) {
-  queue = queue.then(work, (error) => {
-    console.error(error)
-    return work()
-  })
-  return queue
+const BASE_URL = import.meta.env.BASE_URL
+const SCENES = {
+  '6E9F': { url: BASE_URL + '6E9F.pdb', format: 'pdb', protein: 'A', guide: 'B', target: 'C', guideRange: [31, 52], targetRange: [5, 26] },
+  '9LZT': { url: 'https://files.rcsb.org/download/9LZT.pdb', format: 'pdb', protein: 'B', guide: 'A' },
+  '9LZU': { url: BASE_URL + '9LZU.pdb', format: 'pdb', protein: 'A', guide: 'C', target: 'B' },
+  '4UN3': { url: 'https://files.rcsb.org/download/4UN3.pdb', format: 'pdb', protein: 'B', guide: 'A', target: 'C', secondTarget: 'D' },
 }
+const viewers = new Map()
+const beadComponents = new Map()
+let activeScene = null
 
-function chainRange(chain, start, end) {
+function chainRange(chain, start = 1, end = 9999) {
   return MS.struct.generator.atomGroups({
     'chain-test': MS.core.rel.eq([MS.ammp('auth_asym_id'), chain]),
     'residue-test': MS.core.rel.inRange([MS.ammp('auth_seq_id'), start, end]),
   })
 }
 
-function currentStructure() {
+function structureCell(viewer) {
   const items = viewer?.plugin?.managers?.structure?.hierarchy?.current?.structures
   return items?.length ? items[0].cell : undefined
 }
 
-async function addCartoonOverlay(expression, key, label, hexColor) {
-  const plugin = viewer.plugin
-  const component = await plugin.builders.structure.tryCreateComponentFromExpression(
-    structureCell,
-    expression,
-    key,
-    { label }
-  )
-  if (!component) return
-  await plugin.builders.structure.representation.addRepresentation(component, {
-    type: 'cartoon',
-    color: 'uniform',
-    colorParams: { value: Color(hexColor) },
-  })
-  return component
-}
-
-async function addPairBead(chain, residue, label, hexColor) {
+async function addCartoon(viewer, structure, chain, label, color, range) {
+  const expr = range ? chainRange(chain, range[0], range[1]) : chainRange(chain)
   const component = await viewer.plugin.builders.structure.tryCreateComponentFromExpression(
-    structureCell,
-    chainRange(chain, residue, residue),
-    'reading-head-' + chain + '-' + residue,
-    { label }
+    structure, expr, label.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-'), { label }
   )
   if (!component) return
   await viewer.plugin.builders.structure.representation.addRepresentation(component, {
-    type: 'spacefill',
-    typeParams: { sizeFactor: 2.6, alpha: 0.95 },
+    type: 'cartoon',
     color: 'uniform',
-    colorParams: { value: Color(hexColor) },
+    colorParams: { value: Color(color) },
   })
   return component
 }
 
-async function clearReadingHead() {
-  if (!activeComponents.length) return
-  const builder = viewer.plugin.build()
-  for (const component of activeComponents) {
-    if (component?.ref) builder.delete(component.ref)
-  }
-  await builder.commit()
-  activeComponents = []
-}
-
-export async function initStructure() {
-  viewer = await Viewer.create('molstar-stage', {
+async function createScene(id) {
+  const cfg = SCENES[id]
+  if (!cfg) throw new Error('Unknown structure scene: ' + id)
+  const viewer = await Viewer.create('scene-' + id, {
     layoutIsExpanded: false,
     layoutShowControls: false,
     layoutShowSequence: false,
@@ -101,77 +64,70 @@ export async function initStructure() {
     viewportShowSelectionMode: false,
     viewportShowAnimation: false,
     viewportShowTrajectoryControls: false,
-    viewportBackgroundColor: '#0a0c10',
+    viewportBackgroundColor: '#080b10',
   })
+  await viewer.loadStructureFromUrl(cfg.url, cfg.format, false)
+  const structure = structureCell(viewer)
+  if (!structure) throw new Error('Structure ' + id + ' loaded without a model.')
 
-  await viewer.loadStructureFromUrl(PDB_URL, 'pdb', false)
-  structureCell = currentStructure()
-  if (!structureCell) throw new Error('The 6E9F structure loaded without a model.')
-
-  const protein = MS.struct.generator.atomGroups({
-    'chain-test': MS.core.rel.eq([MS.ammp('auth_asym_id'), 'A']),
-  })
-  await addCartoonOverlay(
-    protein,
-    'cas13d-protein',
-    'EsCas13d protein',
-    0x596477
-  )
-  await addCartoonOverlay(
-    chainRange('B', GUIDE_SPACER_START_RESIDUE, GUIDE_SPACER_END_RESIDUE),
-    'crrna-spacer',
-    'crRNA spacer (chain B)',
-    0x49c8b1
-  )
-  await addCartoonOverlay(
-    chainRange('C', TARGET_START_RESIDUE, TARGET_END_RESIDUE),
-    'target-site',
-    'Target RNA site (chain C)',
-    0xf0a45b
-  )
-
-  focusTargetSite()
-  return viewer
+  const proteinColor = id === '4UN3' ? 0x66758b : 0x657181
+  await addCartoon(viewer, structure, cfg.protein, id === '4UN3' ? 'SpCas9 protein' : id === '9LZT' || id === '9LZU' ? 'RfxCas13d · CasRx' : 'EsCas13d', proteinColor)
+  if (id === '6E9F') {
+    await addCartoon(viewer, structure, cfg.guide, 'crRNA spacer', 0x49c8b1, cfg.guideRange)
+    await addCartoon(viewer, structure, cfg.target, 'target RNA', 0xf0a45b, cfg.targetRange)
+  } else if (id === '9LZT') {
+    await addCartoon(viewer, structure, cfg.guide, 'RfxCas13d crRNA', 0x49c8b1)
+  } else if (id === '9LZU') {
+    await addCartoon(viewer, structure, cfg.guide, 'RfxCas13d crRNA', 0x49c8b1)
+    await addCartoon(viewer, structure, cfg.target, 'bound RNA · off-target example', 0xf0a45b)
+  } else {
+    await addCartoon(viewer, structure, cfg.guide, 'SpCas9 single-guide RNA', 0x49c8b1)
+    await addCartoon(viewer, structure, cfg.target, 'target DNA strand', 0x8e9cff)
+    await addCartoon(viewer, structure, cfg.secondTarget, 'non-target DNA · PAM strand', 0xf0a45b)
+  }
+  return { viewer, structure }
 }
 
-function focusTargetSite() {
-  if (!viewer || !structureCell) return
-  const selection = Script.getStructureSelection(
-    chainRange('C', TARGET_START_RESIDUE, TARGET_END_RESIDUE),
-    structureCell.obj.data
-  )
-  viewer.plugin.managers.structure.focus.setFromLoci(
-    StructureSelection.toLociWithSourceUnits(selection)
-  )
+export async function showScene(id) {
+  for (const scene of Object.keys(SCENES)) {
+    const element = document.getElementById('scene-' + scene)
+    if (element) element.hidden = scene !== id
+  }
+  activeScene = id
+  if (!viewers.has(id)) viewers.set(id, await createScene(id))
+  return viewers.get(id)
 }
 
-export function showReadingPair(targetIndex, guideLength = 22) {
-  if (!viewer || !structureCell) return Promise.resolve()
+async function addPairBead(viewer, chain, residue, label, color) {
+  const structure = structureCell(viewer)
+  const component = await viewer.plugin.builders.structure.tryCreateComponentFromExpression(
+    structure, chainRange(chain, residue, residue), 'reading-head-' + chain + '-' + residue, { label }
+  )
+  if (!component) return null
+  await viewer.plugin.builders.structure.representation.addRepresentation(component, {
+    type: 'spacefill', typeParams: { sizeFactor: 2.1, alpha: 0.98 },
+    color: 'uniform', colorParams: { value: Color(color) },
+  })
+  return component
+}
+
+export async function showReadingPair(targetIndex, guideLength = 22) {
+  const scene = viewers.get('6E9F')
+  if (!scene || activeScene !== '6E9F') return
+  const old = beadComponents.get('6E9F') || []
+  if (old.length) {
+    const builder = scene.viewer.plugin.build()
+    for (const component of old) if (component?.ref) builder.delete(component.ref)
+    await builder.commit()
+  }
   const targetResidue = TARGET_START_RESIDUE + targetIndex
   const guideResidue = guideResidueForTargetIndex(targetIndex)
-  const guideIsInLength = targetIndex < guideLength
-  return serial(async () => {
-    await clearReadingHead()
-    const target = await addPairBead(
-      'C',
-      targetResidue,
-      'Target RNA C:' + targetResidue,
-      0xffa548
-    )
-    if (guideIsInLength) {
-      const guide = await addPairBead(
-        'B',
-        guideResidue,
-        'crRNA B:' + guideResidue,
-        0x55dfc5
-      )
-      activeComponents = [target, guide].filter(Boolean)
-    } else {
-      activeComponents = [target].filter(Boolean)
-    }
-  })
+  const target = await addPairBead(scene.viewer, 'C', targetResidue, 'Target RNA C:' + targetResidue, 0xffb55f)
+  const guide = targetIndex < guideLength
+    ? await addPairBead(scene.viewer, 'B', guideResidue, 'crRNA B:' + guideResidue, 0x70f0d7)
+    : null
+  beadComponents.set('6E9F', [target, guide].filter(Boolean))
 }
 
-export function hasStructure() {
-  return !!viewer
-}
+export function hasScene(id) { return viewers.has(id) }
+export function activeSceneId() { return activeScene }
