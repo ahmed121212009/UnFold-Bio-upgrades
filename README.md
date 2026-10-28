@@ -1,6 +1,6 @@
 # UnFold-BIO upgrades
 
-A standalone prototype for the structure-linked Guide RNA Design section. It keeps a beginner-friendly Basic Guide mode alongside a sequence-accurate 6E9F design mode, with a synchronized Mol* structure viewer and sequence reading head.
+A standalone prototype for the Guide RNA Design section, with three lessons: Basic Guide, structure-linked 6E9F crRNA design, and a sequence-only NCBI RefSeq transcript lab. The 6E9F lesson pairs a Mol* structure view with a synchronized sequence reading head.
 
 ## Verified 6E9F sequence data
 
@@ -11,15 +11,17 @@ The sequence records in the 6E9F PDB coordinate file identify:
 - The target-paired segment is target chain C residues 5–26 (22 nt): 5′-UUUGAUCUGAAAUAUUCAGGUC-3′
 - The matching spacer is crRNA chain B residues 31–52 (22 nt): 5′-GACCUGAAUAUUUCAGAUCAAA-3′
 
-The spacer is the reverse complement of that target segment using RNA pairing (A–U, G–C). Shorter 18 nt and 20 nt options are shown as design exercises, not as experimentally validated designs. The 3D view always shows the observed 6E9F complex.
+The spacer is the reverse complement of that target segment using RNA pairing (A–U, G–C). Shorter 18 nt and 20 nt options are shown as design exercises, not as experimentally validated designs. The embedded 3D view shows the observed 6E9F complex. Shorter lengths are sequence exercises mapped to the observed structure; they are not separate experimentally measured designs. The mismatch control demonstrates a noncanonical pair visually and makes no prediction about cleavage or activity.
 
 ## Data sources
 
 - [RCSB PDB entry 6E9F](https://www.rcsb.org/structure/6E9F) — EsCas13d–crRNA–target RNA ternary complex.
 - [RCSB PDB sequence page for 6E9F](https://www.rcsb.org/sequence/6E9F) — chain sequence records.
 - Coordinate file bundled as public/6E9F.pdb from the project’s original UnFold-BIO repository, matching the RCSB entry.
+- The **NCBI transcript lab** bundles the NCBI RefSeq FASTA for [NM_002046.7](https://www.ncbi.nlm.nih.gov/nuccore/NM_002046.7), human GAPDH transcript variant 1. FASTA DNA letters were converted from T to U for the RNA pairing lesson. Window choices and reverse complements are sequence exercises only; they are not activity, accessibility, or specificity predictions.
+- [RCSB PDB entry 6E9E](https://www.rcsb.org/structure/6E9E) is the related EsCas13d–crRNA binary complex. The viewer links to its online structure view as a target-free comparison. The local Mol* view remains 6E9F.
 
-The DNA viewer screenshot is used as a layout reference. Its B-DNA geometry values are not reused for this RNA complex.
+The DNA viewer screenshot is used as a layout reference for the reading head, sequence strip, and structure facts. Its B-DNA geometry values are not reused for the RNA complex.
 
 ## Run locally
 
